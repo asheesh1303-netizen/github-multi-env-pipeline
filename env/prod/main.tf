@@ -1,3 +1,4 @@
+# This is the main Terraform configuration file for the production environment.
 module "infra" {
   source = "../../modules/vpc-ec2"
 
