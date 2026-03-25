@@ -1,0 +1,51 @@
+name: Terraform Deploy (Single Pipeline)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select Environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - stage
+          - prod
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  terraform:
+    name: Deploy Terraform
+    runs-on: ubuntu-latest
+
+    environment: ${{ github.event.inputs.environment == 'prod' && 'production' || github.event.inputs.environment }}
+
+    defaults:
+      run:
+        working-directory: env/${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
